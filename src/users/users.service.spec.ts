@@ -42,10 +42,16 @@ describe('UsersService', () => {
       repo.findByEmail.mockResolvedValue(null);
       repo.create.mockResolvedValue(mockUser);
 
-      const result = await service.create({ email: 'alice@ex.com', name: 'Alice' });
+      const result = await service.create({
+        email: 'alice@ex.com',
+        name: 'Alice',
+      });
 
       expect(repo.findByEmail).toHaveBeenCalledWith('alice@ex.com');
-      expect(repo.create).toHaveBeenCalledWith({ email: 'alice@ex.com', name: 'Alice' });
+      expect(repo.create).toHaveBeenCalledWith({
+        email: 'alice@ex.com',
+        name: 'Alice',
+      });
       expect(result).toEqual(mockUser);
     });
 
@@ -99,7 +105,11 @@ describe('UsersService', () => {
 
     it('다른 사용자가 쓰는 이메일로 변경하면 ConflictException', async () => {
       repo.findById.mockResolvedValue(mockUser);
-      repo.findByEmail.mockResolvedValue({ ...mockUser, id: 2, email: 'taken@ex.com' });
+      repo.findByEmail.mockResolvedValue({
+        ...mockUser,
+        id: 2,
+        email: 'taken@ex.com',
+      });
 
       await expect(
         service.update(1, { email: 'taken@ex.com' }),

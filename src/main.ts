@@ -20,7 +20,7 @@ async function bootstrap() {
     app,
     config.getOrThrow<string>('REDIS_URL'),
   );
-  await redisIoAdapter.connectToRedis();
+  redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(process.env.PORT ?? 3000);

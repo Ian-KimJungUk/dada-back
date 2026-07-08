@@ -56,7 +56,9 @@ describe('UsersController', () => {
     const updated = { ...mockUser, name: 'Bob' };
     service.update.mockResolvedValue(updated);
 
-    await expect(controller.update(1, { name: 'Bob' })).resolves.toEqual(updated);
+    await expect(controller.update(1, { name: 'Bob' })).resolves.toEqual(
+      updated,
+    );
     expect(service.update).toHaveBeenCalledWith(1, { name: 'Bob' });
   });
 

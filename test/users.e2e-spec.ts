@@ -59,8 +59,14 @@ describe('Users (e2e)', () => {
   });
 
   it('POST /users → 409 이메일 중복', async () => {
-    await request(server()).post('/users').send({ email: 'dup@ex.com' }).expect(201);
-    await request(server()).post('/users').send({ email: 'dup@ex.com' }).expect(409);
+    await request(server())
+      .post('/users')
+      .send({ email: 'dup@ex.com' })
+      .expect(201);
+    await request(server())
+      .post('/users')
+      .send({ email: 'dup@ex.com' })
+      .expect(409);
   });
 
   it('GET /users → 200 목록', async () => {

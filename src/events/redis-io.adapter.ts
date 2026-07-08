@@ -2,7 +2,7 @@ import { INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Redis } from 'ioredis';
-import type { ServerOptions } from 'socket.io';
+import { Server, ServerOptions } from 'socket.io';
 
 /**
  * socket.io 기본 IoAdapter를 확장해 Redis pub/sub 백플레인을 연결한다.
@@ -18,14 +18,14 @@ export class RedisIoAdapter extends IoAdapter {
     super(app);
   }
 
-  async connectToRedis(): Promise<void> {
+  connectToRedis(): void {
     const pubClient = new Redis(this.redisUrl);
     const subClient = pubClient.duplicate();
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }
 
-  createIOServer(port: number, options?: ServerOptions): unknown {
-    const server = super.createIOServer(port, options);
+  createIOServer(port: number, options?: ServerOptions): Server {
+    const server = super.createIOServer(port, options) as Server;
     server.adapter(this.adapterConstructor);
     return server;
   }

@@ -27,12 +27,16 @@ describe('UsersRepository', () => {
 
   it('create → prisma.user.create({ data })', async () => {
     await repo.create({ email: 'a@ex.com' });
-    expect(prismaUser.create).toHaveBeenCalledWith({ data: { email: 'a@ex.com' } });
+    expect(prismaUser.create).toHaveBeenCalledWith({
+      data: { email: 'a@ex.com' },
+    });
   });
 
   it('findMany → id 오름차순 정렬', async () => {
     await repo.findMany();
-    expect(prismaUser.findMany).toHaveBeenCalledWith({ orderBy: { id: 'asc' } });
+    expect(prismaUser.findMany).toHaveBeenCalledWith({
+      orderBy: { id: 'asc' },
+    });
   });
 
   it('findById → findUnique({ where: { id } })', async () => {
