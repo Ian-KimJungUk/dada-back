@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: dada-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ian
+      POSTGRES_PASSWORD: ian
+      POSTGRES_DB: dada
+    ports:
+      # 호스트 5442 -> 컨테이너 5432 (.env의 DATABASE_URL과 일치)
+      - '5442:5432'
+    volumes:
+      # Postgres 18+ 는 데이터 하위 디렉토리를 스스로 관리하므로 /var/lib/postgresql 에 마운트
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ian -d dada']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
