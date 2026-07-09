@@ -18,11 +18,16 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# 프로덕션 의존성만 설치 (postinstall 스킵 — 클라이언트는 dist에 이미 컴파일됨)
+# 마이그레이션(prisma migrate deploy)에 필요한 스키마/설정을 먼저 복사한다.
 COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 
-# 빌드 산출물(컴파일된 앱 + Prisma 클라이언트)만 복사
+# 프로덕션 의존성 설치. 스크립트를 실행해 빌드 시점(root)에
+# Prisma schema-engine 다운로드 + 클라이언트 생성을 끝내둔다(런타임엔 읽기 전용).
+RUN npm ci --omit=dev && npm cache clean --force
+
+# 빌드 산출물(컴파일된 앱 + Prisma 클라이언트) 복사
 COPY --from=builder /app/dist ./dist
 
 # 비루트 사용자로 실행
