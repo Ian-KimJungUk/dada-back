@@ -74,3 +74,21 @@ jobs:
 
       - name: Build image
         run: docker build -t dada-back:ci .
+
+  deploy:
+    name: Deploy to Fly.io
+    # 테스트와 이미지 빌드가 모두 통과해야 하고, main에 push(=PR merge)될 때만 배포한다.
+    needs: [test, docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    concurrency: deploy-fly # 동시 배포 방지
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # Fly가 원격 빌더에서 이미지를 빌드하고, release_command로 마이그레이션 후 배포한다.
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
