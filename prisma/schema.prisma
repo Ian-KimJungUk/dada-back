@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma"
@@ -10,15 +8,135 @@ generator client {
   moduleFormat = "cjs"
 }
 
+// 스키마 변경 시 docs/ERD.md(Mermaid)를 자동 생성. GitHub에서 다이어그램으로 렌더링됨.
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/ERD.md"
+}
+
 datasource db {
   provider = "postgresql"
 }
 
-// 예시 모델 — 실제 도메인에 맞게 수정하세요.
+enum Provider {
+  kakao
+  apple
+  naver
+}
+
+enum Gender {
+  male
+  female
+  unknown
+}
+
+enum MemberRole {
+  owner
+  member
+}
+
+enum FeedingType {
+  breast // 모유
+  formula // 분유
+  solid // 이유식
+}
+
+enum FeedingSide {
+  left
+  right
+  both
+}
+
+enum DiaperType {
+  pee
+  poo
+  both
+}
+
+// 사용자. 익명(게스트)으로 시작했다가 소셜 로그인 시 email/provider가 채워지며 정식 계정으로 승격된다.
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(uuid()) @db.Uuid
+  email       String? // 익명이면 null
+  provider    Provider? // 익명이면 null
+  isAnonymous Boolean      @default(true) @map("is_anonymous")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  memberships BabyMember[]
+
+  // 가입 계정만 유니크. Postgres에서 NULL은 서로 다른 값으로 취급되므로 익명 유저(둘 다 null)는 다수 허용.
+  @@unique([provider, email])
+  @@map("tb_user")
+}
+
+// 아기. 소유/접근 권한은 BabyMember(조인 테이블)로 관리해 여러 사용자가 공동 편집할 수 있다.
+model Baby {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  birthDate DateTime @map("birth_date") @db.Date
+  gender    Gender?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  members        BabyMember[]
+  feedingRecords FeedingRecord[]
+  sleepRecords   SleepRecord[]
+  diaperRecords  DiaperRecord[]
+
+  @@map("tb_baby")
+}
+
+// 사용자-아기 멤버십(다대다). role로 소유자/일반 구분.
+model BabyMember {
+  id        String     @id @default(uuid()) @db.Uuid
+  babyId    String     @map("baby_id") @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  role      MemberRole @default(member)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([babyId, userId]) // 같은 유저가 같은 아기에 중복 참여 방지
+  @@index([userId])
+  @@map("tb_baby_member")
+}
+
+// 수유 기록. type에 따라 side(모유) 또는 amountMl(분유)를 사용. endTime이 null이면 진행 중.
+model FeedingRecord {
+  id        String       @id @default(uuid()) @db.Uuid
+  babyId    String       @map("baby_id") @db.Uuid
+  type      FeedingType
+  side      FeedingSide? // 모유일 때만
+  amountMl  Int?         @map("amount_ml") // 분유일 때만
+  startTime DateTime     @default(now()) @map("start_time") @db.Timestamptz(6)
+  endTime   DateTime?    @map("end_time") // null이면 수유 중
+
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+
+  @@index([babyId, startTime])
+  @@map("tb_feeding_record")
+}
+
+// 수면 기록. endTime이 null이면 수면 중.
+model SleepRecord {
+  id        String    @id @default(uuid()) @db.Uuid
+  babyId    String    @map("baby_id") @db.Uuid
+  startTime DateTime  @default(now()) @map("start_time") @db.Timestamptz(6)
+  endTime   DateTime? @map("end_time")
+
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+
+  @@index([babyId, startTime])
+  @@map("tb_sleep_record")
+}
+
+// 기저귀 기록.
+model DiaperRecord {
+  id         String     @id @default(uuid()) @db.Uuid
+  babyId     String     @map("baby_id") @db.Uuid
+  type       DiaperType
+  recordedAt DateTime   @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  baby Baby @relation(fields: [babyId], references: [id], onDelete: Cascade)
+
+  @@index([babyId, recordedAt])
+  @@map("tb_diaper_record")
 }
